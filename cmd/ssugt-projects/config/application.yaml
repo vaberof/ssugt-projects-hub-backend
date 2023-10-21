@@ -1,0 +1,13 @@
+app:
+  http:
+    server:
+      host: localhost
+      port: 8000
+
+  mongodb:
+    app-name: ssugt_projects
+    uri: mongodb://127.0.0.1:27017
+    user:
+    password:
+    database: ssugt_projects
+    pool-size: 100

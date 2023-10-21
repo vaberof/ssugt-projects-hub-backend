@@ -1,0 +1,4 @@
+.idea
+
+/cmd/ssugt-projects/build/
+/cmd/ssugt-projects/config/application.env
