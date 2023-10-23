@@ -1,11 +1,10 @@
-package auth
+package accesstoken
 
 import (
 	"errors"
-	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/vaberof/ssugt-projects/pkg/auth"
 	"github.com/vaberof/ssugt-projects/pkg/domain"
-	"strconv"
 	"time"
 )
 
@@ -15,20 +14,13 @@ var (
 	ErrExpiredToken         = errors.New("token has expired")
 )
 
-type Jwt string
-
 type SecretKey string
 
-type TokenParams struct {
-	UserId   domain.UserId
-	TokenTtl time.Duration
-}
-
-func CreateToken(params *TokenParams, secretKey SecretKey) (string, error) {
-	payload := NewPayload(params)
+func Create(userId domain.UserId, ttl time.Duration, secretKey SecretKey) (string, error) {
+	payload := auth.NewPayload(userId, ttl)
 
 	jwtWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:    strconv.Itoa(int(payload.UserId)),
+		Issuer:    payload.UserId.String(),
 		IssuedAt:  jwt.NewNumericDate(payload.IssuedAt),
 		ExpiresAt: jwt.NewNumericDate(payload.ExpiredAt),
 	})
@@ -38,7 +30,7 @@ func CreateToken(params *TokenParams, secretKey SecretKey) (string, error) {
 	return token, err
 }
 
-func VerifyToken(token string, secretKey SecretKey) (*JwtPayload, error) {
+func Verify(token string, secretKey SecretKey) (*auth.JwtPayload, error) {
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
@@ -61,13 +53,8 @@ func VerifyToken(token string, secretKey SecretKey) (*JwtPayload, error) {
 		return nil, ErrExpiredToken
 	}
 
-	userId, err := strconv.Atoi(claims.Issuer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert claims issuer %w", err)
-	}
-
-	payload := &JwtPayload{
-		UserId:    domain.UserId(userId),
+	payload := &auth.JwtPayload{
+		UserId:    domain.UserId(claims.Issuer),
 		IssuedAt:  claims.IssuedAt.Time,
 		ExpiredAt: claims.ExpiresAt.Time,
 	}

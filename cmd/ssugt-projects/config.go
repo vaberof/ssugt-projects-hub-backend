@@ -2,14 +2,16 @@ package main
 
 import (
 	"errors"
+	"github.com/vaberof/ssugt-projects/internal/domain/auth"
 	"github.com/vaberof/ssugt-projects/pkg/config"
 	"github.com/vaberof/ssugt-projects/pkg/database/mongodb"
 	"github.com/vaberof/ssugt-projects/pkg/http/httpserver"
 )
 
 type AppConfig struct {
-	Server   httpserver.ServerConfig
-	Database mongodb.MongoDatabaseConfig
+	Server     httpserver.ServerConfig
+	Database   mongodb.MongoDatabaseConfig
+	AuthConfig auth.AuthConfig
 }
 
 func getAppConfig(sources ...string) AppConfig {
@@ -44,9 +46,16 @@ func tryGetAppConfig(sources ...string) (*AppConfig, error) {
 		return nil, err
 	}
 
+	var authConfig auth.AuthConfig
+	err = config.ParseConfig(provider, "app.auth", &authConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	config := AppConfig{
-		Server:   serverConfig,
-		Database: mongoDatabaseConfig,
+		Server:     serverConfig,
+		Database:   mongoDatabaseConfig,
+		AuthConfig: authConfig,
 	}
 
 	return &config, nil

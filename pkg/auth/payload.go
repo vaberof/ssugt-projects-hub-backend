@@ -11,10 +11,10 @@ type JwtPayload struct {
 	ExpiredAt time.Time
 }
 
-func NewPayload(params *TokenParams) *JwtPayload {
+func NewPayload(userId domain.UserId, ttl time.Duration) *JwtPayload {
 	return &JwtPayload{
-		UserId:    params.UserId,
+		UserId:    userId,
 		IssuedAt:  time.Now(),
-		ExpiredAt: time.Now().Add(params.TokenTtl),
+		ExpiredAt: time.Now().Add(ttl),
 	}
 }

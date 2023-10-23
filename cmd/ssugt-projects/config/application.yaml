@@ -11,3 +11,6 @@ app:
     password:
     database: ssugt_projects
     pool-size: 100
+
+  auth:
+    access-token-secret-key: secret
