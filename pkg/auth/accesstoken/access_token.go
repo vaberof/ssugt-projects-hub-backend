@@ -3,8 +3,8 @@ package accesstoken
 import (
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/vaberof/ssugt-projects/pkg/auth"
-	"github.com/vaberof/ssugt-projects/pkg/domain"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/auth"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
 	"time"
 )
 

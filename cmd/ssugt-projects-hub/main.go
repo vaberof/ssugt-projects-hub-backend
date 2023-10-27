@@ -4,13 +4,15 @@ import (
 	"flag"
 	"fmt"
 	"github.com/joho/godotenv"
-	httproutes "github.com/vaberof/ssugt-projects/internal/app/entrypoint/http"
-	"github.com/vaberof/ssugt-projects/internal/domain/auth"
-	"github.com/vaberof/ssugt-projects/internal/domain/user"
-	"github.com/vaberof/ssugt-projects/internal/infra/storage/mongodb/mongouser"
-	"github.com/vaberof/ssugt-projects/pkg/database/mongodb"
-	"github.com/vaberof/ssugt-projects/pkg/http/httpserver"
-	"github.com/vaberof/ssugt-projects/pkg/logging/logs"
+	httproutes "github.com/vaberof/ssugt-projects-hub-backend/internal/app/entrypoint/http"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/auth"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/project"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/user"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/infra/storage/mongodb/mongoproject"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/infra/storage/mongodb/mongouser"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/database/mongodb"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/http/httpserver"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/logging/logs"
 	"os"
 )
 
@@ -36,14 +38,17 @@ func main() {
 	}
 
 	userStorage := mongouser.NewMongoUserStorage(managedDatabase.Db)
+	projectStorage := mongoproject.NewMongoProjectStorage(managedDatabase.Db)
+
 	userService := user.NewUserService(userStorage)
 	authService := auth.NewAuthService(appConfig.AuthConfig, userService)
+	projectService := project.NewProjectService(projectStorage)
 
-	httpHandler := httproutes.NewHandler(authService)
+	httpHandler := httproutes.NewHandler(authService, projectService, logger)
 
 	appServer := httpserver.New(&appConfig.Server, logger)
 
-	appServer.Server = httpHandler.InitRoutes(appServer.Server)
+	appServer.Server = httpHandler.InitRoutes(appServer.Server, logger)
 
 	starter := appServer.StartAsync()
 

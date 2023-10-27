@@ -1,4 +1,4 @@
-.idea
+.idea/
 
-/cmd/ssugt-projects/build/
-/cmd/ssugt-projects/config/application.env
+/cmd/ssugt-projects-hub/build
+/cmd/ssugt-projects-hub/config/application.env

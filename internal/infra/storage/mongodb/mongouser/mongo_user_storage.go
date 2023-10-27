@@ -2,21 +2,21 @@ package mongouser
 
 import (
 	"context"
-	"github.com/vaberof/ssugt-projects/internal/domain/user"
-	"github.com/vaberof/ssugt-projects/pkg/domain"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/user"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-const collectionUser = "users"
+const collectionUsers = "users"
 
 type MongoUserStorage struct {
 	collection *mongo.Collection
 }
 
 func NewMongoUserStorage(db *mongo.Database) *MongoUserStorage {
-	return &MongoUserStorage{collection: db.Collection(collectionUser)}
+	return &MongoUserStorage{collection: db.Collection(collectionUsers)}
 }
 
 func (storage *MongoUserStorage) Get(id domain.UserId) (*user.User, error) {
@@ -48,7 +48,7 @@ func (storage *MongoUserStorage) GetByEmail(email domain.Email) (*user.User, err
 
 func (storage *MongoUserStorage) fromMongoUser(mongoUser *User) *user.User {
 	return &user.User{
-		Id:           domain.UserId(mongoUser.Id.String()),
+		Id:           domain.UserId(mongoUser.Id.Hex()),
 		Role:         domain.Role(mongoUser.Role),
 		FullName:     domain.FullName(mongoUser.FullName),
 		Password:     domain.Password(mongoUser.Password),

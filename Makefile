@@ -3,25 +3,25 @@ APP_NAME=web-backend
 
 DOCKER_IMAGE_NAME=$(PROJECT_NAME)/$(APP_NAME)
 
-WORK_DIR_LINUX=./cmd/ssugt-projects
-CONFIG_DIR_LINUX=./cmd/ssugt-projects/config
+WORK_DIR_LINUX=./cmd/ssugt-projects-hub
+CONFIG_DIR_LINUX=./cmd/ssugt-projects-hub/config
 
-WORK_DIR_WINDOWS=.\cmd\ssugt-projects
-CONFIG_DIR_WINDOWS=.\cmd\ssugt-projects\config
+WORK_DIR_WINDOWS=.\cmd\ssugt-projects-hub
+CONFIG_DIR_WINDOWS=.\cmd\ssugt-projects-hub\config
 
 docker.linux.local: build.linux
 	docker image rm -f $(DOCKER_IMAGE_NAME) || (echo "Image $(DOCKER_IMAGE_NAME) didn't exist so not removed."; exit 0)
 	docker build -t $(DOCKER_IMAGE_NAME) -f cmd/ssugt-projects/Dockerfile .
 
 build.linux: build.clean
-	mkdir -p cmd/ssugt-projects/build
-	go build -o cmd/ssugt-projects/build/main cmd/ssugt-projects/*.go
-	cp -R cmd/ssugt-projects/config/* cmd/ssugt-projects/build
+	mkdir -p cmd/ssugt-projects-hub/build
+	go build -o cmd/ssugt-projects-hub/build/main cmd/ssugt-projects-hub/*.go
+	cp -R cmd/ssugt-projects-hub/config/* cmd/ssugt-projects-hub/build
 
 build.linux.local: build.clean
-	mkdir -p cmd/ssugt-projects/build
-	go build -o cmd/ssugt-projects/build/main cmd/ssugt-projects/*.go
-	cp -R cmd/ssugt-projects/config/* cmd/ssugt-projects/build
+	mkdir -p cmd/ssugt-projects-hub/build
+	go build -o cmd/ssugt-projects-hub/build/main cmd/ssugt-projects-hub/*.go
+	cp -R cmd/ssugt-projects-hub/config/* cmd/ssugt-projects-hub/build
 	@echo "build.local: OK"
 
 run.linux: build.linux
@@ -35,4 +35,4 @@ run.windows:
 		-env.vars.file $(CONFIG_DIR_WINDOWS)\application.env
 
 build.clean:
-	rm -rf ./cmd/ssugt-projects/build
+	rm -rf ./cmd/ssugt-projects-hub/build

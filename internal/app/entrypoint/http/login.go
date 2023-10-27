@@ -3,8 +3,8 @@ package http
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
-	"github.com/vaberof/ssugt-projects/pkg/domain"
-	"github.com/vaberof/ssugt-projects/pkg/http/protocols/apiv1"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/http/protocols/apiv1"
 	"net/http"
 )
 
@@ -17,16 +17,16 @@ type loginResponseBody struct {
 	AccessToken string `json:"access_token"`
 }
 
-func (h *Handler) Login(ctx *gin.Context) {
+func (handler *Handler) Login(ctx *gin.Context) {
 	var loginReqBody loginRequestBody
 	if err := ctx.Bind(&loginReqBody); err != nil {
-		ctx.JSON(http.StatusBadRequest, apiv1.Error("invalid request body"))
+		ctx.JSON(http.StatusBadRequest, apiv1.Error(apiv1.CodeBadRequest, "invalid request body"))
 		return
 	}
 
-	accessToken, err := h.authService.Login(domain.Email(loginReqBody.Email), domain.Password(loginReqBody.Password))
+	accessToken, err := handler.authService.Login(domain.Email(loginReqBody.Email), domain.Password(loginReqBody.Password))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, apiv1.Error(err.Error()))
+		ctx.JSON(http.StatusInternalServerError, apiv1.Error(apiv1.CodeInternalError, err.Error()))
 		return
 	}
 

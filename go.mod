@@ -1,4 +1,4 @@
-module github.com/vaberof/ssugt-projects
+module github.com/vaberof/ssugt-projects-hub-backend
 
 go 1.21.0
 

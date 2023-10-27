@@ -3,7 +3,7 @@ package logging
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/vaberof/ssugt-projects/pkg/logging/logs"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/logging/logs"
 	"log/slog"
 )
 

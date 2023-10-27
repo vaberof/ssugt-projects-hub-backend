@@ -18,6 +18,7 @@ type Response struct {
 }
 
 type ErrorResponsePayload struct {
+	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
@@ -28,8 +29,9 @@ func Success(payload json.RawMessage) *Response {
 	}
 }
 
-func Error(message string) *Response {
+func Error(code string, message string) *Response {
 	payload, _ := json.Marshal(&ErrorResponsePayload{
+		Code:    code,
 		Message: message,
 	})
 

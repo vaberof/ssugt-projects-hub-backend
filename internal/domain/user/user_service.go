@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/vaberof/ssugt-projects/pkg/domain"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
 )
 
 type UserService interface {

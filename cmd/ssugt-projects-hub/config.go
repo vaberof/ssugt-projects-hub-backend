@@ -2,10 +2,10 @@ package main
 
 import (
 	"errors"
-	"github.com/vaberof/ssugt-projects/internal/domain/auth"
-	"github.com/vaberof/ssugt-projects/pkg/config"
-	"github.com/vaberof/ssugt-projects/pkg/database/mongodb"
-	"github.com/vaberof/ssugt-projects/pkg/http/httpserver"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/auth"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/config"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/database/mongodb"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/http/httpserver"
 )
 
 type AppConfig struct {

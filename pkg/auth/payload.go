@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/vaberof/ssugt-projects/pkg/domain"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
 	"time"
 )
 

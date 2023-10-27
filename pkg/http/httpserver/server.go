@@ -3,8 +3,8 @@ package httpserver
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/vaberof/ssugt-projects/pkg/http/httpserver/middleware/logging"
-	"github.com/vaberof/ssugt-projects/pkg/logging/logs"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/http/httpserver/middleware/logging"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/logging/logs"
 	"log/slog"
 	"net/http"
 )

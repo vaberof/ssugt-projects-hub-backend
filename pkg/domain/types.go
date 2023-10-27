@@ -29,3 +29,15 @@ type FullName string
 func (fullName *FullName) String() string {
 	return string(*fullName)
 }
+
+type ProjectId string
+
+func (projectId *ProjectId) String() string {
+	return string(*projectId)
+}
+
+type ProjectType string
+
+func (projectType *ProjectType) String() string {
+	return string(*projectType)
+}
