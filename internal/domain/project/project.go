@@ -16,6 +16,7 @@ type Project struct {
 	Director     *Director
 	Template     ProjectTemplate
 	Tags         []string
+	Files        []*ProjectFile
 	CreatedAt    time.Time
 	ModifiedAt   time.Time
 }

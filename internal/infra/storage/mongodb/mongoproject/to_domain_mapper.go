@@ -2,7 +2,6 @@ package mongoproject
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/project"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
 )
@@ -21,20 +20,18 @@ func (storage *MongoProjectStorage) toDomainProjects(mongoProjects []*Project) (
 
 func (storage *MongoProjectStorage) toDomainProject(mongoProject *Project) (*project.Project, error) {
 	var domainProject project.Project
-	fmt.Println("ту домейн проджект")
+
 	if mongoProject.ProjectType == project.ProjectTypeStudentScientificConference {
 		projectTemplateBytes, err := json.Marshal(mongoProject.SscProjectTemplate)
 		if err != nil {
 			return nil, err
 		}
 		domainProject.Template = projectTemplateBytes
-		fmt.Println("SSC")
 	} else if mongoProject.ProjectType == project.ProjectTypeLaboratory {
 		projectTemplateBytes, err := json.Marshal(mongoProject.LaboratoryProjectTemplate)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("LABORATORY")
 		domainProject.Template = projectTemplateBytes
 	}
 
@@ -48,7 +45,6 @@ func (storage *MongoProjectStorage) toDomainProject(mongoProject *Project) (*pro
 	domainProject.CreatedAt = mongoProject.CreatedAt
 	domainProject.ModifiedAt = mongoProject.ModifiedAt
 
-	fmt.Println("project type:", domainProject.ProjectType)
 	return &domainProject, nil
 }
 

@@ -11,6 +11,8 @@ import (
 	"net/http"
 )
 
+// TODO: map from/to view model
+
 type createProjectRequestBody struct {
 	ProjectType        domain.ProjectType                                  `json:"project_type"`
 	Authors            []*project.Author                                   `json:"authors"`

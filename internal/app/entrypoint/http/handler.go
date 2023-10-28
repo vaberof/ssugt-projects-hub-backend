@@ -1,10 +1,12 @@
 package http
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/app/entrypoint/http/middleware"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/auth"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/project"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/service/upload"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/logging/logs"
 	"log/slog"
 )
@@ -12,16 +14,18 @@ import (
 type Handler struct {
 	authService    auth.AuthService
 	projectService project.ProjectService
+	uploadService  upload.UploadService
 	logger         *slog.Logger
 }
 
-func NewHandler(authService auth.AuthService, projectService project.ProjectService, logs *logs.Logs) *Handler {
+func NewHandler(authService auth.AuthService, projectService project.ProjectService, uploadService upload.UploadService, logs *logs.Logs) *Handler {
 	logger := logs.WithName("http-handler")
-	return &Handler{authService: authService, projectService: projectService, logger: logger}
+	return &Handler{authService: authService, projectService: projectService, uploadService: uploadService, logger: logger}
 }
 
 func (handler *Handler) InitRoutes(router *gin.Engine, logs *logs.Logs) *gin.Engine {
 	apiV1 := router.Group("/api/v1")
+	apiV1.Use(cors.Default())
 
 	auth := apiV1.Group("/auth")
 	auth.POST("/login", handler.Login)
@@ -29,7 +33,14 @@ func (handler *Handler) InitRoutes(router *gin.Engine, logs *logs.Logs) *gin.Eng
 	projects := apiV1.Group("/projects")
 	projects.GET("/:id", handler.GetProject)
 	projects.GET("/", handler.GetProjects)
+	//projects.GET("/files", handler.GetProjectFiles)
 	projects.POST("/", middleware.AuthMiddleware(handler.authService, logs), handler.CreateProject)
+
+	uploads := apiV1.Group("/uploads")
+	uploads.POST("/projects", middleware.AuthMiddleware(handler.authService, logs), handler.UploadProjectFiles)
+
+	downloads := apiV1.Group("/downloads")
+	downloads.GET("/projects", handler.DownloadProjectFile)
 
 	return router
 }

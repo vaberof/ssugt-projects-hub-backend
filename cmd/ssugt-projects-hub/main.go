@@ -10,6 +10,7 @@ import (
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/user"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/infra/storage/mongodb/mongoproject"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/infra/storage/mongodb/mongouser"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/service/upload"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/database/mongodb"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/http/httpserver"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/logging/logs"
@@ -44,7 +45,9 @@ func main() {
 	authService := auth.NewAuthService(appConfig.AuthConfig, userService)
 	projectService := project.NewProjectService(projectStorage)
 
-	httpHandler := httproutes.NewHandler(authService, projectService, logger)
+	uploadService := upload.NewUploadService()
+
+	httpHandler := httproutes.NewHandler(authService, projectService, uploadService, logger)
 
 	appServer := httpserver.New(&appConfig.Server, logger)
 

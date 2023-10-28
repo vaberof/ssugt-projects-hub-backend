@@ -141,8 +141,6 @@ func (storage *MongoProjectStorage) ListByFilters(userId domain.UserId, projectT
 		return nil, err
 	}
 
-	fmt.Println(projects)
-
 	domainProjects, err := storage.toDomainProjects(projects)
 	if err != nil {
 		return nil, err
