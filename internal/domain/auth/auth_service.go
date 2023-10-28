@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const defaultTokenTtl = 1 * time.Hour
+const defaultTokenTtl = 24 * time.Hour
 
 type AuthService interface {
 	Login(email domain.Email, password domain.Password) (*AccessToken, error)
