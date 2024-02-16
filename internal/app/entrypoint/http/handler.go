@@ -6,7 +6,6 @@ import (
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/app/entrypoint/http/middleware"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/auth"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/project"
-	"github.com/vaberof/ssugt-projects-hub-backend/internal/service/upload"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/logging/logs"
 	"log/slog"
 )
@@ -14,13 +13,12 @@ import (
 type Handler struct {
 	authService    auth.AuthService
 	projectService project.ProjectService
-	uploadService  upload.UploadService
 	logger         *slog.Logger
 }
 
-func NewHandler(authService auth.AuthService, projectService project.ProjectService, uploadService upload.UploadService, logs *logs.Logs) *Handler {
+func NewHandler(authService auth.AuthService, projectService project.ProjectService, logs *logs.Logs) *Handler {
 	logger := logs.WithName("http-handler")
-	return &Handler{authService: authService, projectService: projectService, uploadService: uploadService, logger: logger}
+	return &Handler{authService: authService, projectService: projectService, logger: logger}
 }
 
 func (handler *Handler) InitRoutes(router *gin.Engine, logs *logs.Logs) *gin.Engine {
@@ -33,7 +31,6 @@ func (handler *Handler) InitRoutes(router *gin.Engine, logs *logs.Logs) *gin.Eng
 	projects := apiV1.Group("/projects")
 	projects.GET("/:id", handler.GetProject)
 	projects.GET("/", handler.GetProjects)
-	//projects.GET("/files", handler.GetProjectFiles)
 	projects.POST("/", middleware.AuthMiddleware(handler.authService, logs), handler.CreateProject)
 
 	uploads := apiV1.Group("/uploads")

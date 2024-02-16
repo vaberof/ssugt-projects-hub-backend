@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"time"
 )
 
-const ctxTimeout = 10 * time.Second
+const connectionTimeout = 5 * time.Second
 
 type MongoDatabaseConfig struct {
 	AppName  string `yaml:"app-name"`
@@ -21,11 +22,12 @@ type MongoDatabaseConfig struct {
 }
 
 type ManagedDatabase struct {
-	Db *mongo.Database
+	Db      *mongo.Database
+	errorCh chan error
 }
 
 func New(config *MongoDatabaseConfig) (*ManagedDatabase, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), connectionTimeout)
 	defer cancel()
 
 	clientOptions := options.Client()
@@ -49,9 +51,14 @@ func New(config *MongoDatabaseConfig) (*ManagedDatabase, error) {
 		return nil, fmt.Errorf("failed to connect to mongodb: %w", err)
 	}
 
-	err = client.Ping(context.Background(), nil)
+	errorCh := make(chan error)
+
+	//go verifyClientConnectionAbility(client, errorCh)
+
+	err = client.Ping(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to ping mongodb: %w", err)
+		log.Println("FAILED TO PING")
+		return nil, fmt.Errorf("failed to ping mongoDb: %w", err)
 	}
 
 	mongoDb := client.Database(config.Database)
@@ -60,8 +67,45 @@ func New(config *MongoDatabaseConfig) (*ManagedDatabase, error) {
 	}
 
 	managedDatabase := ManagedDatabase{
-		Db: mongoDb,
+		Db:      mongoDb,
+		errorCh: errorCh,
 	}
 
+	log.Println("database is running")
+
 	return &managedDatabase, nil
+}
+
+func verifyClientConnectionAbility(client *mongo.Client, errorCh chan<- error) {
+	pingTimeout := time.Second * 5
+	pingInterval := time.Second * 5
+
+	ctx, cancel := context.WithTimeout(context.Background(), pingTimeout)
+	defer cancel()
+
+	timer := time.NewTimer(pingInterval)
+	defer timer.Stop()
+	for {
+		if err := client.Ping(ctx, nil); err != nil {
+			log.Println("FAILED TO PING")
+			errorCh <- fmt.Errorf("failed to ping mongodb while verifying client connection: %w", err)
+			return
+		}
+
+		select {
+		case <-timer.C:
+			timer.Reset(pingInterval)
+		}
+	}
+}
+
+func (mongo *ManagedDatabase) Error() <-chan error {
+	return mongo.errorCh
+}
+
+func (mongo *ManagedDatabase) Disconnect(ctx context.Context) error {
+	if mongo.Db.Client() == nil {
+		return nil
+	}
+	return mongo.Db.Client().Disconnect(ctx)
 }

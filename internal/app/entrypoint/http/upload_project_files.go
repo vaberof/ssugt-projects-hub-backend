@@ -1,17 +1,21 @@
 package http
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/project"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
+	"github.com/vaberof/ssugt-projects-hub-backend/pkg/http/httpserver"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/http/protocols/apiv1"
-	"io"
-	"log"
+	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
-const projectUploadsRelativePath = "public\\uploads\\projects"
+type uploadProjectFilesResponseBody struct {
+	UploadedFiles []project.Filename `json:"uploaded_files"`
+}
 
 func (handler *Handler) UploadProjectFiles(ctx *gin.Context) {
 	projectId := ctx.Query("projectId")
@@ -21,49 +25,39 @@ func (handler *Handler) UploadProjectFiles(ctx *gin.Context) {
 		return
 	}
 
-	projectRootDirectory, _ := os.Getwd()
+	if err := ctx.Request.ParseMultipartForm(httpserver.MaxMultipartMemory); err != nil {
+		ctx.JSON(http.StatusBadRequest, apiv1.Error(apiv1.CodeBadRequest, fmt.Sprintf("files size limit exceeded. maxSize=%d MB", httpserver.MaxMultipartMemory)))
+		return
+	}
 
-	form, _ := ctx.MultipartForm()
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, apiv1.Error(apiv1.CodeInternalError, err.Error()))
+		return
+	}
+
 	files := form.File["files"]
 
-	/*for _, file := range files {
-		mimeType := file.Header.Get("Content-Type")
-		//TODO: add pdf, pptx
-		if mimeType != MIMETypeJpeg && mimeType != MIMETypePng {
-			ctx.JSON(http.StatusBadRequest, apiv1.Error(apiv1.CodeBadRequest, fmt.Sprintf("unsupported MIMEType=%s", mimeType)))
-			return
-		}
-	}*/
-
-	pathToUploadsProjectDirectory := projectRootDirectory + "\\" + projectUploadsRelativePath + "\\" + projectId
-
-	if _, err := os.Stat(pathToUploadsProjectDirectory); err != nil {
-		err = os.Mkdir(pathToUploadsProjectDirectory, os.ModePerm)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, apiv1.Error(apiv1.CodeInternalError, err.Error()))
-			return
-		}
+	uploadedFiles, err := handler.projectService.SaveFiles(domain.ProjectId(projectId), files)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message:": err.Error()})
+		return
 	}
 
+	payload, _ := json.Marshal(&uploadProjectFilesResponseBody{
+		UploadedFiles: uploadedFiles,
+	})
+
+	ctx.JSON(http.StatusOK, apiv1.Success(payload))
+}
+
+func (handler *Handler) validateFiles(files []*multipart.FileHeader) error {
 	for _, file := range files {
-		fileExtension := filepath.Ext(file.Filename)
-		originalFileName := strings.TrimSuffix(filepath.Base(file.Filename), filepath.Ext(file.Filename))
-
-		//newFileName := strings.ReplaceAll(strings.ToLower(originalFileName), " ", "-") + "-" + fmt.Sprintf("%v%s", time.Now().Unix(), fileExtension)
-
-		filePath := pathToUploadsProjectDirectory + "\\" + originalFileName + fileExtension
-		out, err := os.Create(filePath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer out.Close()
-
-		readerFile, _ := file.Open()
-		_, err = io.Copy(out, readerFile)
-		if err != nil {
-			log.Fatal(err)
+		mimeType := file.Header.Get("Content-Type")
+		//TODO: add doc, docx, pdf, pptx
+		if mimeType != MIMETypeJpeg && mimeType != MIMETypePng {
+			return errors.New(fmt.Sprintf("unsupported MIME type: %s\n", mimeType))
 		}
 	}
-
-	ctx.JSON(http.StatusOK, gin.H{"status": "ok", "message:": "uploaded successfully"})
+	return nil
 }

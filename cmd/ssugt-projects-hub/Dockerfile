@@ -1,9 +1,11 @@
-FROM golang:latest
+FROM golang:1.22
 
 EXPOSE 8080
 
-WORKDIR /opt/app
+RUN mkdir -p /opt/app
 
 COPY cmd/ssugt-projects-hub/build /opt/app
 
-ENTRYPOINT [ "./main", "-config.files", "application.yaml", "-env.vars.file", "application.env" ]
+WORKDIR /opt/app
+
+CMD [ "opt/app/main", "-config.files", "container.yaml", "-env.vars.file", "application.env" ]

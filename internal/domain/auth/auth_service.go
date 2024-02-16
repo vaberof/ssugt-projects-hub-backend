@@ -16,14 +16,14 @@ type AuthService interface {
 }
 
 type authServiceImpl struct {
-	config      AuthConfig
 	userService UserService
+	config      AuthConfig
 }
 
-func NewAuthService(config AuthConfig, userService UserService) AuthService {
+func NewAuthService(userService UserService, config AuthConfig) AuthService {
 	return &authServiceImpl{
-		config:      config,
 		userService: userService,
+		config:      config,
 	}
 }
 

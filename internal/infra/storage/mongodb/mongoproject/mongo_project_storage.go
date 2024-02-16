@@ -3,7 +3,6 @@ package mongoproject
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/project"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
 	"go.mongodb.org/mongo-driver/bson"
@@ -101,7 +100,7 @@ func (storage *MongoProjectStorage) Get(id domain.ProjectId) (*project.Project, 
 		return nil, err
 	}
 
-	fmt.Printf("project: %+v\n", project.SscProjectTemplate)
+	//fmt.Printf("project: %+v\n", project.SscProjectTemplate)
 
 	return storage.toDomainProject(&project)
 }

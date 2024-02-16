@@ -6,31 +6,40 @@ import (
 	"errors"
 	"fmt"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
+	"io"
 	"log"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"sync"
 )
 
-const projectUploadsRelativePath = "public\\uploads\\projects"
-
 type ProjectService interface {
 	Create(userId domain.UserId, projectType domain.ProjectType, authors []*Author, organization *Organization, director *Director, projectTemplate ProjectTemplate, tags []string) (domain.ProjectId, error)
 	Get(id domain.ProjectId) (*Project, error)
 	ListByFilters(userId domain.UserId, projectType domain.ProjectType, organizationName string, tags []string) ([]*Project, error)
+	SaveFiles(projectId domain.ProjectId, files []*multipart.FileHeader) ([]Filename, error)
+	IsFileExists(filename string) error
+	GetUploadsPath() string
 }
 
-type ProjectConfig struct {
-	pathToUploadsDirectory string
+type ProjectServiceConfig struct {
+	ProjectUploadsPath string `yaml:"project-uploads-path"`
 }
 
 type projectServiceImpl struct {
 	projectStorage ProjectStorage
-	config         ProjectConfig
+	config         ProjectServiceConfig
+
+	// Usage: appending to output slice of successfully saved files
+	mu sync.Mutex
 }
 
-func NewProjectService(projectStorage ProjectStorage) ProjectService {
-	return &projectServiceImpl{projectStorage: projectStorage}
+func NewProjectService(projectStorage ProjectStorage, config ProjectServiceConfig) ProjectService {
+	return &projectServiceImpl{
+		projectStorage: projectStorage,
+		config:         config,
+	}
 }
 
 func (service *projectServiceImpl) Create(userId domain.UserId, projectType domain.ProjectType, authors []*Author, organization *Organization, director *Director, projectTemplate ProjectTemplate, tags []string) (domain.ProjectId, error) {
@@ -52,7 +61,6 @@ func (service *projectServiceImpl) Get(id domain.ProjectId) (*Project, error) {
 	domainProjectFiles, err := service.getProjectFiles(id)
 	if err != nil {
 		//TODO: use logs logger
-		log.Printf("ERROR!!!")
 		log.Printf("projectId=%s, err=%v\n", domainProject.Id, err)
 		return nil, err
 	}
@@ -108,6 +116,73 @@ func (service *projectServiceImpl) ListByFilters(userId domain.UserId, projectTy
 	return projects, nil
 }
 
+func (service *projectServiceImpl) SaveFiles(projectId domain.ProjectId, files []*multipart.FileHeader) ([]Filename, error) {
+	_, err := service.Get(projectId)
+	if err != nil {
+		return nil, err
+	}
+
+	pathToProjectsUploads := filepath.Join(service.GetUploadsPath(), projectId.String())
+
+	if _, err := os.Stat(pathToProjectsUploads); err != nil {
+		err = os.Mkdir(pathToProjectsUploads, os.ModePerm)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var successfullyUploadedFiles []Filename
+	var wg sync.WaitGroup
+
+	wg.Add(len(files))
+
+	for _, file := range files {
+		go func(file *multipart.FileHeader) {
+			defer wg.Done()
+
+			filePath := pathToProjectsUploads + "\\" + file.Filename
+			createdFile, err := os.Create(filePath)
+			if err != nil {
+				// TODO: logs
+				return
+			}
+			defer createdFile.Close()
+
+			openedFile, err := file.Open()
+			if err != nil {
+				// TODO: logs
+				return
+			}
+			defer openedFile.Close()
+
+			_, err = io.Copy(createdFile, openedFile)
+			if err != nil {
+				// TODO: logs
+				return
+			}
+
+			service.mu.Lock()
+			successfullyUploadedFiles = append(successfullyUploadedFiles, Filename(file.Filename))
+			service.mu.Unlock()
+		}(file)
+	}
+
+	wg.Wait()
+
+	return successfullyUploadedFiles, nil
+}
+
+func (service *projectServiceImpl) IsFileExists(filepath string) error {
+	if _, err := os.Stat(filepath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (service *projectServiceImpl) GetUploadsPath() string {
+	return service.config.ProjectUploadsPath
+}
+
 func (service *projectServiceImpl) createSSCProject(userId domain.UserId, projectType domain.ProjectType, authors []*Author, organization *Organization, director *Director, projectTemplate ProjectTemplate, tags []string) (domain.ProjectId, error) {
 	var sscProjectTemplate StudentScientificConferenceProjectTemplate
 	err := json.Unmarshal(projectTemplate, &sscProjectTemplate)
@@ -127,20 +202,16 @@ func (service *projectServiceImpl) createLaboratoryProject(userId domain.UserId,
 }
 
 func (service *projectServiceImpl) getProjectFiles(projectId domain.ProjectId) ([]*ProjectFile, error) {
-	// TODO: use absolute path from service config
-	rootDirectory, _ := os.Getwd()
-	projectUploadsDirectory := rootDirectory + "\\" + projectUploadsRelativePath + "\\" + projectId.String()
+	projectUploadsDirectory := filepath.Join(service.GetUploadsPath(), projectId.String())
 	_, err := os.Stat(projectUploadsDirectory)
 	if err != nil {
 		// TODO: use service logs.Logger
-		//log.Fatal(err)
 		return nil, err
 	}
 
 	files, err := os.ReadDir(projectUploadsDirectory)
 	if err != nil {
 		// TODO: use service logs.Logger
-		//log.Fatal(err)
 		return nil, err
 	}
 
@@ -161,7 +232,7 @@ func (service *projectServiceImpl) getProjectFiles(projectId domain.ProjectId) (
 			fileName := files[i].Name()
 			fileExtension := filepath.Ext(fileName)
 
-			projectFile.Name = fileName
+			projectFile.Name = Filename(fileName)
 
 			if service.isImage(fileExtension) {
 				projectFile.Type = FileTypeImage

@@ -16,7 +16,7 @@ type ProjectResponsePayload struct {
 	SscTemplate        *StudentScientificConferenceProjectTemplate `json:"ssc_template,omitempty"`
 	LaboratoryTemplate *LaboratoryProjectTemplate                  `json:"laboratory_template,omitempty"`
 	Tags               []string                                    `json:"tags,omitempty"`
-	Files              []*project.ProjectFile                      `json:"files,omitempty"` // TODO: смапить в респонс
+	Files              []*project.ProjectFile                      `json:"files"` // TODO: смапить в респонс
 	CreatedAt          time.Time                                   `json:"created_at"`
 	ModifiedAt         time.Time                                   `json:"modified_at"`
 }

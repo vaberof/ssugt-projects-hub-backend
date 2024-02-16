@@ -3,15 +3,17 @@ package main
 import (
 	"errors"
 	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/auth"
+	"github.com/vaberof/ssugt-projects-hub-backend/internal/domain/project"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/config"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/database/mongodb"
 	"github.com/vaberof/ssugt-projects-hub-backend/pkg/http/httpserver"
 )
 
 type AppConfig struct {
-	Server     httpserver.ServerConfig
-	Database   mongodb.MongoDatabaseConfig
-	AuthConfig auth.AuthConfig
+	Server         httpserver.ServerConfig
+	Database       mongodb.MongoDatabaseConfig
+	AuthConfig     auth.AuthConfig
+	ProjectService project.ProjectServiceConfig
 }
 
 func getAppConfig(sources ...string) AppConfig {
@@ -52,10 +54,17 @@ func tryGetAppConfig(sources ...string) (*AppConfig, error) {
 		return nil, err
 	}
 
+	var projectServiceConfig project.ProjectServiceConfig
+	err = config.ParseConfig(provider, "app.uploads.projects", &projectServiceConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	config := AppConfig{
-		Server:     serverConfig,
-		Database:   mongoDatabaseConfig,
-		AuthConfig: authConfig,
+		Server:         serverConfig,
+		Database:       mongoDatabaseConfig,
+		AuthConfig:     authConfig,
+		ProjectService: projectServiceConfig,
 	}
 
 	return &config, nil

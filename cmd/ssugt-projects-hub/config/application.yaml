@@ -14,3 +14,7 @@ app:
 
   auth:
     access-token-secret-key: secret
+
+  uploads:
+    projects:
+      project-uploads-path: ???

@@ -2,3 +2,5 @@
 
 /cmd/ssugt-projects-hub/build
 /cmd/ssugt-projects-hub/config/application.env
+
+/public
