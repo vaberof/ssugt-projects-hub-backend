@@ -9,9 +9,9 @@ type Logs struct {
 	root *slog.Logger
 }
 
-func New(w io.Writer, opts *slog.HandlerOptions) *Logs {
+func New(w io.Writer, opts *slog.HandlerOptions, name string) *Logs {
 	jsonLogger := getJSONLogger(w, opts)
-	return &Logs{root: jsonLogger}
+	return &Logs{root: jsonLogger.With("logger-name", name)}
 }
 
 func (logs *Logs) WithName(name string) *slog.Logger {

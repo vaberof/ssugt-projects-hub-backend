@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
-	"github.com/vaberof/ssugt-projects-hub-backend/pkg/domain"
+	"errors"
+	"net/http"
+	"ssugt-projects-hub/pkg/auth/accesstoken"
 )
 
 type contextKey struct {
@@ -11,20 +13,48 @@ type contextKey struct {
 
 var authClientCtxKey = &contextKey{"AuthClient"}
 
-func UserIdFromContext(ctx context.Context) *domain.UserId {
-	v := ctx.Value(authClientCtxKey)
-	if v == nil {
-		return nil
+func GetContext(r *http.Request) (context.Context, error) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		return r.Context(), errors.New("empty token")
 	}
 
-	userId, ok := v.(*domain.UserId)
+	payload, err := accesstoken.Verify(token)
+	if payload == nil || err != nil {
+		return r.Context(), err
+	}
+
+	return UserIdToContext(r.Context(), payload.UserId), nil
+}
+
+func IsAuthorized(ctx context.Context) bool {
+	v := ctx.Value(authClientCtxKey)
+	if v == nil {
+		return false
+	}
+
+	_, ok := v.(int)
 	if !ok {
-		return nil
+		return false
+	}
+
+	return true
+}
+
+func UserIdFromContext(ctx context.Context) int {
+	v := ctx.Value(authClientCtxKey)
+	if v == nil {
+		return 0
+	}
+
+	userId, ok := v.(int)
+	if !ok {
+		return 0
 	}
 
 	return userId
 }
 
-func UserIdToContext(ctx context.Context, userId *domain.UserId) context.Context {
+func UserIdToContext(ctx context.Context, userId int) context.Context {
 	return context.WithValue(ctx, authClientCtxKey, userId)
 }

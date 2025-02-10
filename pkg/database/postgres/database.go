@@ -1,33 +1,35 @@
 package postgres
 
 import (
-	"fmt"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"context"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
+	"log"
 )
 
-type PgDatabaseConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Database string `yaml:"database"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-}
-
-type ManagedDatabase struct {
-	Db *gorm.DB
-}
-
-func New(config *PgDatabaseConfig) (*ManagedDatabase, error) {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s", config.Host, config.Port, config.User, config.Password, config.Database)
-	gormDb, err := gorm.Open(postgres.Open(dsn))
+func NewPgx(ctx context.Context, connectionString string) *sqlx.DB {
+	pool, err := pgxpool.New(ctx, connectionString)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
-	managedDatabase := ManagedDatabase{
-		Db: gormDb,
+	db := sqlx.NewDb(stdlib.OpenDBFromPool(pool), "pgx")
+	if err = db.Ping(); err != nil {
+		log.Fatal(err)
 	}
 
-	return &managedDatabase, nil
+	return db
+}
+
+func NewOld(connectionString string) *sqlx.DB {
+	db := sqlx.MustConnect("postgres", connectionString)
+
+	if err := db.Ping(); err != nil {
+		log.Fatalln(err)
+	}
+
+	db.SetMaxOpenConns(20)
+
+	return db
 }
