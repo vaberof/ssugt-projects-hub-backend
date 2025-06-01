@@ -1,36 +1,39 @@
 package handlers
 
 import (
-	"github.com/gorilla/mux"
 	"net/http"
-	"ssugt-projects-hub/models"
 	"ssugt-projects-hub/pkg/auth"
 	"ssugt-projects-hub/pkg/logging/logs"
 	"ssugt-projects-hub/pkg/xhttp"
-	userservice "ssugt-projects-hub/service/user"
+	authservice "ssugt-projects-hub/service/auth"
 )
 
-func GetUserByEmailHandler(logs *logs.Logs, userService userservice.Service) http.HandlerFunc {
+type isAdminResponse struct {
+	IsAdmin bool `json:"isAdmin"`
+}
+
+func IsAdminHandler(logs *logs.Logs, authService authservice.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := logs.WithName("get-user-by-email-handler")
+		log := logs.WithName("is-admin-handler")
 
 		ctx, err := auth.GetContext(r)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Error(err.Error())
+			xhttp.Forbidden(w)
+			return
 		}
 
-		vars := mux.Vars(r)
-		email := vars["email"]
+		userId := auth.UserIdFromContext(ctx)
 
-		user, err := userService.GetByEmail(ctx, email)
+		isAdmin, err := authService.IsAdmin(ctx, userId)
 		if err != nil {
 			log.Error(err.Error())
 			xhttp.BadRequest(w)
 			return
 		}
 
-		response := models.GetUserResponse{
-			User: models.MapToUserResponse(user),
+		response := isAdminResponse{
+			IsAdmin: isAdmin,
 		}
 
 		if err = xhttp.WriteResponseJson(w, http.StatusOK, response); err != nil {

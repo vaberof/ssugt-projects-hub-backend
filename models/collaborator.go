@@ -18,7 +18,8 @@ const (
 type CollaboratorType int
 
 type Collaborator struct {
-	Id     int              `json:"id"`
-	UserId int              `json:"userId"`
-	Role   CollaboratorRole `json:"role"`
+	Id        int              `json:"id"`
+	UserId    int              `json:"userId"`
+	ProjectId int              `json:"projectId"`
+	Role      CollaboratorRole `json:"role"`
 }

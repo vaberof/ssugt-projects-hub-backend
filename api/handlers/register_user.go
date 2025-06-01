@@ -9,6 +9,10 @@ import (
 	authservice "ssugt-projects-hub/service/auth"
 )
 
+type registerUserResponse struct {
+	Message string `json:"message"`
+}
+
 func RegisterUserHandler(logs *logs.Logs, authService authservice.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := logs.WithName("register-user-handler")
@@ -25,11 +29,15 @@ func RegisterUserHandler(logs *logs.Logs, authService authservice.Service) http.
 			return
 		}
 
-		response, err := authService.Register(ctx, user)
+		_, err = authService.Register(ctx, user)
 		if err != nil {
 			log.Error(err.Error())
 			xhttp.BadRequest(w)
 			return
+		}
+
+		response := registerUserResponse{
+			Message: getResponseMessage(err),
 		}
 
 		if err = xhttp.WriteResponseJson(w, http.StatusOK, response); err != nil {
@@ -37,4 +45,11 @@ func RegisterUserHandler(logs *logs.Logs, authService authservice.Service) http.
 			xhttp.BadRequest(w)
 		}
 	}
+}
+
+func getResponseMessage(err error) string {
+	if err != nil {
+		return err.Error()
+	}
+	return "ok"
 }

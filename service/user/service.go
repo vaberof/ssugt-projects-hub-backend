@@ -11,6 +11,7 @@ import (
 type Service interface {
 	Create(ctx context.Context, user models.User) (models.User, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
+	GetByIds(ctx context.Context, userIds []int) ([]models.User, error)
 }
 
 type userServiceImpl struct {
@@ -40,6 +41,15 @@ func (us userServiceImpl) GetByEmail(ctx context.Context, email string) (models.
 	if err != nil {
 		us.log.Error("failed to get user by email", "error", err)
 		return models.User{}, err
+	}
+	return u, nil
+}
+
+func (us userServiceImpl) GetByIds(ctx context.Context, userIds []int) ([]models.User, error) {
+	u, err := us.userRepository.GetByIds(ctx, userIds)
+	if err != nil {
+		us.log.Error("failed to get user by id", "error", err)
+		return []models.User{}, err
 	}
 	return u, nil
 }

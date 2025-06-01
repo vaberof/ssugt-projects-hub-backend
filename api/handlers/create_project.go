@@ -27,6 +27,8 @@ func CreateProjectHandler(logs *logs.Logs, projectService projectservice.Service
 			return
 		}
 
+		log.Debug("project", project)
+
 		response, err := projectService.Create(ctx, project)
 		if err != nil {
 			log.Error(err.Error())

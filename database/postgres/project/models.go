@@ -17,12 +17,11 @@ type DbProject struct {
 }
 
 type DbProjectReview struct {
-	Id         int    `db:"review_id"`
-	ProjectId  int    `db:"review_project_id"`
-	ReviewedBy int    `db:"reviewed_by"`
-	Status     string `db:"review_status"`
-	Comment    string `db:"review_comment"`
-	//Changes     types.JSONText `db:"changes"`
+	Id          int       `db:"review_id"`
+	ProjectId   int       `db:"review_project_id"`
+	ReviewedBy  int       `db:"reviewed_by"`
+	Status      string    `db:"review_status"`
+	Comment     string    `db:"review_comment"`
 	CreatedAt   time.Time `db:"review_created_at"`
 	ProjectData DbProject
 }

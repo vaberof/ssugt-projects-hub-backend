@@ -32,7 +32,6 @@ create table if not exists project_reviews
     id          serial primary key,
     project_id  int       not null references projects (id),
     reviewed_by int       not null references users (id),
---     changes     jsonb     not null,
     status      text      not null,
     comment     text      not null,
     created_at  timestamp not null

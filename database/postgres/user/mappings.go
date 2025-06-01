@@ -2,40 +2,42 @@ package user
 
 import "ssugt-projects-hub/models"
 
-func mapToUser(dbUser DbUser) models.User {
-	roles := make([]models.UserRole, 0, len(dbUser.Roles))
-	for _, role := range dbUser.Roles {
-		roles = append(roles, models.UserRole(role.Id))
+func mapToUsers(dbUser []DbUser) []models.User {
+	users := make([]models.User, len(dbUser))
+	for i := range dbUser {
+		users[i] = mapToUser(dbUser[i])
 	}
+	return users
+}
 
+func mapToUser(dbUser DbUser) models.User {
 	return models.User{
-		Id:                     dbUser.Id,
-		Email:                  dbUser.Email,
-		Password:               dbUser.PasswordHash,
-		FullName:               dbUser.FullName,
-		PhoneNumber:            dbUser.PhoneNumber,
-		IsEmailConfirmed:       dbUser.IsEmailConfirmed,
-		IsPhoneNumberConfirmed: dbUser.IsPhoneNumberConfirmed,
-		Roles:                  roles,
+		Id:       dbUser.Id,
+		Email:    dbUser.Email,
+		Password: dbUser.PasswordHash,
+		FullName: dbUser.FullName,
+		PersonalInfo: models.PersonalInfo{
+			HasOrganisation: dbUser.Profile.PersonalInfo.HasOrganisation,
+			Organisation: models.Organisation{
+				Name:    dbUser.Profile.PersonalInfo.Organisation.Name,
+				Address: dbUser.Profile.PersonalInfo.Organisation.Address,
+			},
+		},
+		Role:      models.UserRole(dbUser.RoleId),
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
 	}
 }
 
 func mapToDbUser(user models.User) DbUser {
-	roles := make([]DbRole, 0, len(user.Roles))
-	for _, role := range user.Roles {
-		roles = append(roles, DbRole{Id: int(role), UserId: user.Id})
-	}
-
 	return DbUser{
-		Id:                     user.Id,
-		Email:                  user.Email,
-		PasswordHash:           user.Password,
-		FullName:               user.FullName,
-		PhoneNumber:            user.PhoneNumber,
-		IsEmailConfirmed:       user.IsEmailConfirmed,
-		IsPhoneNumberConfirmed: user.IsPhoneNumberConfirmed,
-		Roles:                  roles,
-		Profile:                mapToDbUserProfile(user),
+		Id:           user.Id,
+		RoleId:       int(user.Role),
+		Email:        user.Email,
+		PasswordHash: user.Password,
+		FullName:     user.FullName,
+		Profile:      mapToDbUserProfile(user),
+		CreatedAt:    user.CreatedAt,
 	}
 }
 
@@ -43,7 +45,7 @@ func mapToDbUserProfile(user models.User) DbUserProfile {
 	return DbUserProfile{
 		UserId:       user.Id,
 		PersonalInfo: mapToDbPersonalInfo(user.PersonalInfo),
-		Settings:     mapToDbSettings(user.Settings),
+		CreatedAt:    user.CreatedAt,
 	}
 }
 
@@ -51,8 +53,6 @@ func mapToDbPersonalInfo(personalInfo models.PersonalInfo) DbPersonalInfo {
 	return DbPersonalInfo{
 		HasOrganisation: personalInfo.HasOrganisation,
 		Organisation:    mapToDbOrganisation(personalInfo.Organisation),
-		HasEducation:    personalInfo.HasEducation,
-		Education:       mapToDbEducations(personalInfo.Education),
 	}
 }
 
@@ -61,24 +61,4 @@ func mapToDbOrganisation(organisation models.Organisation) DbOrganisation {
 		Name:    organisation.Name,
 		Address: organisation.Address,
 	}
-}
-
-func mapToDbEducations(education []models.Education) []DbEducation {
-	dbEducations := make([]DbEducation, 0, len(education))
-	for _, e := range education {
-		dbEducations = append(dbEducations, mapToDbEducation(e))
-	}
-	return dbEducations
-}
-
-func mapToDbEducation(education models.Education) DbEducation {
-	return DbEducation{
-		Degree: education.Degree,
-		Course: education.Course,
-		Group:  education.Group,
-	}
-}
-
-func mapToDbSettings(settings models.Settings) DbSettings {
-	return DbSettings{}
 }
