@@ -2,6 +2,7 @@ package email
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/smtp"
@@ -61,9 +62,15 @@ func (s *serviceImpl) SendEmail(to []string, subject, body string) error {
 	auth := smtp.PlainAuth("", s.config.Username, s.config.Password, s.config.Host)
 	addr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 
-	msg := bytes.Buffer{}
-	msg.WriteString(fmt.Sprintf("Subject: %s\n", subject))
-	msg.WriteString("MIME-version: 1.0;\nContent-Type: text/plain; charset=\"UTF-8\";\n\n")
+	subjectEncoded := fmt.Sprintf("=?UTF-8?B?%s?=", base64.StdEncoding.EncodeToString([]byte(subject)))
+
+	var msg bytes.Buffer
+	msg.WriteString(fmt.Sprintf("From: %s\r\n", s.config.From))
+	msg.WriteString(fmt.Sprintf("To: %s\r\n", to[0]))
+	msg.WriteString(fmt.Sprintf("Subject: %s\r\n", subjectEncoded))
+	msg.WriteString("MIME-Version: 1.0\r\n")
+	msg.WriteString("Content-Type: text/plain; charset=\"UTF-8\"\r\n")
+	msg.WriteString("\r\n")
 	msg.WriteString(body)
 
 	return smtp.SendMail(addr, auth, s.config.From, to, msg.Bytes())
