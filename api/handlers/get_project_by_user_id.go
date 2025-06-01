@@ -3,12 +3,17 @@ package handlers
 import (
 	"github.com/gorilla/mux"
 	"net/http"
+	"ssugt-projects-hub/models"
 	"ssugt-projects-hub/pkg/auth"
 	"ssugt-projects-hub/pkg/logging/logs"
 	"ssugt-projects-hub/pkg/xhttp"
 	projectservice "ssugt-projects-hub/service/project"
 	"strconv"
 )
+
+type getProjectsByUserIdResponse struct {
+	Projects []models.Project `json:"projects"`
+}
 
 func GetProjectByUserIdHandler(logs *logs.Logs, projectService projectservice.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -28,11 +33,15 @@ func GetProjectByUserIdHandler(logs *logs.Logs, projectService projectservice.Se
 			xhttp.BadRequest(w)
 		}
 
-		response, err := projectService.GetByUserId(ctx, convUserId)
+		projects, err := projectService.GetByUserId(ctx, convUserId)
 		if err != nil {
 			log.Error(err.Error())
 			xhttp.BadRequest(w)
 			return
+		}
+
+		response := getProjectsByUserIdResponse{
+			Projects: projects,
 		}
 
 		if err = xhttp.WriteResponseJson(w, http.StatusOK, response); err != nil {

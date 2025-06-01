@@ -53,10 +53,6 @@ func (r repositoryImpl) Insert(ctx context.Context, project models.Project) (mod
 		return models.Project{}, fmt.Errorf("failed to insert collaborators: %w", err)
 	}
 
-	if err = insertProjectReview(ctx, tx, createInitialProjectReview(dbProject)); err != nil {
-		return models.Project{}, fmt.Errorf("failed to insert project review: %w", err)
-	}
-
 	if err = tx.Commit(); err != nil {
 		return models.Project{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
@@ -89,7 +85,7 @@ var _getProjectsByUserIdSql string
 func (r repositoryImpl) GetByUserId(ctx context.Context, userId int) ([]models.Project, error) {
 	var dbProjects []DbProject
 
-	err := r.db.GetContext(ctx, &dbProjects, _getProjectsByUserIdSql, userId)
+	err := r.db.SelectContext(ctx, &dbProjects, _getProjectsByUserIdSql, userId)
 	if err != nil {
 		return []models.Project{}, fmt.Errorf("failed to execute statement: %w", err)
 	}
@@ -190,38 +186,55 @@ func updateCollaborators(ctx context.Context, tx *sqlx.Tx, projectId int, collab
 var _getProjectsByFiltersSql string
 
 func (r repositoryImpl) Search(ctx context.Context, filters models.ProjectSearchFilters) ([]models.Project, error) {
-	query := _getProjectsByFiltersSql
+	query := `
+        select id,
+               user_id,
+               type_id,
+               status,
+               attributes,
+               created_at,
+               updated_at
+        from projects
+        where not is_deleted
+          and 1 = 1
+    `
 
 	var conditions []string
 	var args []interface{}
+	argNum := 1
 
-	// Добавляем условия на основе фильтров
 	if filters.BaseFilters.Type != 0 {
-		conditions = append(conditions, "type_id = $1")
+		conditions = append(conditions, fmt.Sprintf("type_id = $%d", argNum))
 		args = append(args, filters.BaseFilters.Type)
+		argNum++
 	}
-
 	if filters.BaseFilters.Status != "" {
-		conditions = append(conditions, "status = $2")
+		conditions = append(conditions, fmt.Sprintf("status = $%d", argNum))
 		args = append(args, filters.BaseFilters.Status)
+		argNum++
 	}
-
 	if filters.AttributeFilters.Title != "" {
-		conditions = append(conditions, "LOWER(attributes->>'title') LIKE $3")
+		conditions = append(conditions, fmt.Sprintf("LOWER(attributes->>'title') LIKE $%d", argNum))
 		args = append(args, "%"+strings.ToLower(filters.AttributeFilters.Title)+"%")
+		argNum++
 	}
-
 	if len(filters.AttributeFilters.Tags) > 0 {
-		conditions = append(conditions, "attributes->'tags' ?| $4")
-		args = append(args, pq.Array(filters.AttributeFilters.Tags))
+		tagsLower := make([]string, len(filters.AttributeFilters.Tags))
+		for i, t := range filters.AttributeFilters.Tags {
+			tagsLower[i] = strings.ToLower(t)
+		}
+		conditions = append(conditions, fmt.Sprintf(`EXISTS (
+        SELECT 1 FROM jsonb_array_elements_text(attributes->'tags') tag
+        WHERE LOWER(tag) = ANY($%d::text[])
+    )`, argNum))
+		args = append(args, pq.Array(tagsLower))
+		argNum++
 	}
 
-	// Добавляем условия к базовому запросу
 	if len(conditions) > 0 {
 		query += " AND " + strings.Join(conditions, " AND ")
 	}
 
-	// Выполнение запроса
 	var dbProjects []DbProject
 	err := r.db.SelectContext(ctx, &dbProjects, query, args...)
 	if err != nil {
@@ -243,7 +256,7 @@ var _getCollaboratorsSql string
 
 func (r repositoryImpl) getCollaborators(ctx context.Context, projectId int) ([]DbCollaborator, error) {
 	var dbCollaborators []DbCollaborator
-	return dbCollaborators, r.db.GetContext(ctx, &dbCollaborators, _getCollaboratorsSql, projectId)
+	return dbCollaborators, r.db.SelectContext(ctx, &dbCollaborators, _getCollaboratorsSql, projectId)
 }
 
 //go:embed sql/get_collaborators_by_project_ids.sql
@@ -252,7 +265,7 @@ var _getCollaboratorsByProjectIdsSql string
 func (r repositoryImpl) getProjectsCollaborators(ctx context.Context, projectIds []int) ([]DbCollaborator, error) {
 	var dbCollaborators []DbCollaborator
 
-	if err := r.db.GetContext(ctx, &dbCollaborators, _getCollaboratorsByProjectIdsSql, pq.Array(projectIds)); err != nil {
+	if err := r.db.SelectContext(ctx, &dbCollaborators, _getCollaboratorsByProjectIdsSql, pq.Array(projectIds)); err != nil {
 		return []DbCollaborator{}, fmt.Errorf("failed to execute statement: %w", err)
 	}
 

@@ -1,13 +1,16 @@
 package models
 
+import "time"
+
 type ProjectSearchFilters struct {
 	BaseFilters      BaseFilters      `json:"baseFilters"`
 	AttributeFilters AttributeFilters `json:"attributeFilters"`
 }
 
 type BaseFilters struct {
-	Type   int    `json:"type"`
-	Status string `json:"status"`
+	Type   int       `json:"type"`
+	Status string    `json:"status"`
+	Date   time.Time `json:"date"`
 }
 
 type AttributeFilters struct {

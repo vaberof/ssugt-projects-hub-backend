@@ -1,23 +1,24 @@
-package models
+package cache
 
-import "time"
-
-type UserRole int
-
-const (
-	DefaultRole UserRole = iota + 1
-	RoleAdmin
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"time"
 )
 
-type User struct {
-	Id           int          `json:"id"`
+type EmailConfirmation struct {
+	Id        primitive.ObjectID `bson:"_id"`
+	Email     string             `bson:"Email"`
+	UserData  UserData           `bson:"UserData"`
+	Code      string             `bson:"Code"`
+	CreatedAt time.Time          `bson:"CreatedAt"`
+}
+
+type UserData struct {
 	Email        string       `json:"email"`
 	Password     string       `json:"password"`
 	FullName     string       `json:"fullName"`
 	PersonalInfo PersonalInfo `json:"personalInfo"`
-	Role         UserRole     `json:"role"`
-	CreatedAt    time.Time    `json:"createdAt"`
-	UpdatedAt    time.Time    `json:"updatedAt"`
+	Role         int          `json:"role"`
 }
 
 type PersonalInfo struct {

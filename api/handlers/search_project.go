@@ -9,6 +9,10 @@ import (
 	projectservice "ssugt-projects-hub/service/project"
 )
 
+type searchProjectResponse struct {
+	Projects []models.Project `json:"projects"`
+}
+
 func SearchProjectHandler(logs *logs.Logs, projectService projectservice.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := logs.WithName("search-project-handler")
@@ -25,11 +29,15 @@ func SearchProjectHandler(logs *logs.Logs, projectService projectservice.Service
 			return
 		}
 
-		response, err := projectService.Search(ctx, searchFilters)
+		projects, err := projectService.Search(ctx, searchFilters)
 		if err != nil {
 			log.Error(err.Error())
 			xhttp.BadRequest(w)
 			return
+		}
+
+		response := searchProjectResponse{
+			Projects: projects,
 		}
 
 		if err = xhttp.WriteResponseJson(w, http.StatusOK, response); err != nil {

@@ -21,18 +21,16 @@ const (
 	CompletedProjectStatus ProjectStatus = "Подтверждено"
 )
 
-type ProjectAttributes json.RawMessage
-
 type Project struct {
-	Id            int               `json:"id"`
-	UserId        int               `json:"userId"`
-	Type          ProjectType       `json:"type"`
-	Status        ProjectStatus     `json:"status"`
-	Attributes    ProjectAttributes `json:"attributes"`
-	Collaborators []Collaborator    `json:"collaborators"`
-	Files         []ProjectFile     `json:"files"`
-	CreatedAt     time.Time         `json:"createdAt"`
-	UpdatedAt     time.Time         `json:"updatedAt"`
+	Id            int             `json:"id"`
+	UserId        int             `json:"userId"`
+	Type          ProjectType     `json:"type"`
+	Status        ProjectStatus   `json:"status"`
+	Attributes    json.RawMessage `json:"attributes"`
+	Collaborators []Collaborator  `json:"collaborators"`
+	Files         []ProjectFile   `json:"files"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
 }
 
 type DevelopingStage string

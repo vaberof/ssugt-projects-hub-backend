@@ -1,6 +1,7 @@
 package project
 
 import (
+	"encoding/json"
 	"github.com/jmoiron/sqlx/types"
 	"github.com/samber/lo"
 	"ssugt-projects-hub/models"
@@ -29,9 +30,10 @@ func mapToDbCollaborators(collaborators []models.Collaborator) []DbCollaborator 
 
 func mapToDbCollaborator(collaborator models.Collaborator) DbCollaborator {
 	return DbCollaborator{
-		Id:     collaborator.Id,
-		UserId: collaborator.UserId,
-		Role:   string(collaborator.Role),
+		Id:        collaborator.Id,
+		UserId:    collaborator.UserId,
+		ProjectId: collaborator.ProjectId,
+		Role:      string(collaborator.Role),
 	}
 }
 
@@ -71,7 +73,7 @@ func mapToProject(dbProject DbProject) models.Project {
 		UserId:        dbProject.UserId,
 		Type:          models.ProjectType(dbProject.TypeId),
 		Status:        models.ProjectStatus(dbProject.Status),
-		Attributes:    models.ProjectAttributes(dbProject.Attributes),
+		Attributes:    json.RawMessage(dbProject.Attributes),
 		CreatedAt:     dbProject.CreatedAt,
 		UpdatedAt:     dbProject.UpdatedAt,
 		Collaborators: mapToCollaborators(dbProject.Collaborators),
@@ -88,8 +90,9 @@ func mapToCollaborators(dbCollaborators []DbCollaborator) []models.Collaborator 
 
 func mapToCollaborator(dbCollaborator DbCollaborator) models.Collaborator {
 	return models.Collaborator{
-		Id:     dbCollaborator.Id,
-		UserId: dbCollaborator.UserId,
-		Role:   models.CollaboratorRole(dbCollaborator.Role),
+		Id:        dbCollaborator.Id,
+		UserId:    dbCollaborator.UserId,
+		ProjectId: dbCollaborator.ProjectId,
+		Role:      models.CollaboratorRole(dbCollaborator.Role),
 	}
 }
