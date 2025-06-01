@@ -7,30 +7,20 @@ import (
 )
 
 type DbUser struct {
-	Id                     int       `db:"id"`
-	Email                  string    `db:"email"`
-	PasswordHash           string    `db:"password_hash"`
-	FullName               string    `db:"full_name"`
-	PhoneNumber            string    `db:"phone_number"`
-	IsEmailConfirmed       bool      `db:"is_email_confirmed"`
-	IsPhoneNumberConfirmed bool      `db:"is_phone_number_confirmed"`
-	CreatedAt              time.Time `db:"created_at"`
-	UpdatedAt              time.Time `db:"updated_at"`
-	Roles                  []DbRole
-	Profile                DbUserProfile
-}
-
-type DbRole struct {
-	Id     int    `db:"id"`
-	UserId int    `db:"user_id"`
-	Name   string `db:"name"`
+	Id           int       `db:"id"`
+	RoleId       int       `db:"role_id"`
+	Email        string    `db:"email"`
+	PasswordHash string    `db:"password_hash"`
+	FullName     string    `db:"full_name"`
+	CreatedAt    time.Time `db:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at"`
+	Profile      DbUserProfile
 }
 
 type DbUserProfile struct {
 	Id           int            `db:"id"`
 	UserId       int            `db:"user_id"`
 	PersonalInfo DbPersonalInfo `db:"personal_info"`
-	Settings     DbSettings     `db:"settings"`
 	CreatedAt    time.Time      `db:"created_at"`
 	UpdatedAt    time.Time      `db:"updated_at"`
 }
@@ -38,8 +28,6 @@ type DbUserProfile struct {
 type DbPersonalInfo struct {
 	HasOrganisation bool           `json:"hasOrganisation"`
 	Organisation    DbOrganisation `json:"organisation"`
-	HasEducation    bool           `json:"hasEducation"`
-	Education       []DbEducation  `json:"education"`
 }
 
 func (p *DbPersonalInfo) Scan(value interface{}) error {

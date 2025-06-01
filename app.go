@@ -6,12 +6,17 @@ import (
 	"net/http"
 	"ssugt-projects-hub/api"
 	"ssugt-projects-hub/config"
+	"ssugt-projects-hub/database/mongo/cache"
+	filerepo "ssugt-projects-hub/database/mongo/files"
 	projectrepo "ssugt-projects-hub/database/postgres/project"
 	userrepo "ssugt-projects-hub/database/postgres/user"
+	"ssugt-projects-hub/pkg/database/mongo"
 	"ssugt-projects-hub/pkg/database/postgres"
 	"ssugt-projects-hub/pkg/logging/logs"
 	authservice "ssugt-projects-hub/service/auth"
+	fileservice "ssugt-projects-hub/service/files"
 	projectservice "ssugt-projects-hub/service/project"
+	emailservice "ssugt-projects-hub/service/sender/email"
 	userservice "ssugt-projects-hub/service/user"
 	"time"
 )
@@ -23,10 +28,15 @@ type App struct {
 
 	userRepository    userrepo.Repository
 	projectRepository projectrepo.Repository
+	fileRepository    filerepo.Repository
+
+	cache cache.Cache
 
 	authService    authservice.Service
 	userService    userservice.Service
+	emailService   emailservice.Service
 	projectService projectservice.Service
+	fileService    fileservice.Service
 }
 
 func NewApp(mainCtx context.Context, log *logs.Logs) *App {
@@ -37,12 +47,26 @@ func NewApp(mainCtx context.Context, log *logs.Logs) *App {
 }
 
 func (a *App) initDatabases() {
-	db := postgres.NewPgx(context.Background(), config.PostgresConnection())
+	mongoCfg := mongo.MongoDatabaseConfig{
+		AppName:  "",
+		URI:      "mongodb://localhost:27017",
+		Database: "ssugt-projects-hub",
+	}
 
-	a.userRepository = userrepo.NewRepository(db)
-	a.projectRepository = projectrepo.NewRepository(db)
+	mongoDb, err := mongo.New(&mongoCfg)
+	if err != nil {
+		panic(err)
+	}
 
-	err := runMigrations(db)
+	postgresDb := postgres.NewPgx(context.Background(), config.PostgresConnection())
+
+	a.userRepository = userrepo.NewRepository(postgresDb)
+	a.projectRepository = projectrepo.NewRepository(postgresDb)
+	a.fileRepository = filerepo.NewRepository(mongoDb.Db)
+
+	a.cache = cache.NewMongoRepository(mongoDb.Db)
+
+	err = runMigrations(postgresDb)
 	if err != nil {
 		a.log.GetLogger().Error("не смог прогнать миграции: %v", err)
 		panic(err)
@@ -51,12 +75,14 @@ func (a *App) initDatabases() {
 
 func (a *App) initServices() {
 	a.userService = userservice.NewService(a.log, a.userRepository)
-	a.authService = authservice.NewService(a.log, a.userService)
-	a.projectService = projectservice.NewProjectService(a.log, a.projectRepository)
+	a.emailService = emailservice.NewService(a.log, emailservice.NewSmtpConfig())
+	a.authService = authservice.NewService(a.log, a.userService, a.emailService, a.cache)
+	a.projectService = projectservice.NewProjectService(a.log, a.projectRepository, a.fileRepository)
+	a.fileService = fileservice.NewService(a.fileRepository)
 }
 
 func (a *App) initServer() {
-	a.server = api.NewServer(a.mainCtx, a.log, a.authService, a.projectService, a.userService)
+	a.server = api.NewServer(a.mainCtx, a.log, a.authService, a.projectService, a.fileService, a.userService)
 }
 
 func (a *App) Start() {

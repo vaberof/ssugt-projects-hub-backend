@@ -13,6 +13,7 @@ import (
 type Repository interface {
 	Insert(ctx context.Context, user models.User) (models.User, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
+	GetByIds(ctx context.Context, userIds []int) ([]models.User, error)
 }
 
 type repositoryImpl struct {
@@ -56,11 +57,6 @@ func (r repositoryImpl) Insert(ctx context.Context, user models.User) (models.Us
 		return models.User{}, fmt.Errorf("failed to insert user profile: %w", err)
 	}
 
-	err = insertUsersRoles(ctx, tx, dbUser.Roles)
-	if err != nil {
-		return models.User{}, fmt.Errorf("failed to insert user roles: %w", err)
-	}
-
 	if err = tx.Commit(); err != nil {
 		return models.User{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
@@ -76,20 +72,36 @@ func (r repositoryImpl) GetByEmail(ctx context.Context, email string) (models.Us
 
 	err := r.db.GetContext(ctx, &dbUser, _getUserByEmailSql, email)
 	if err != nil {
-		return models.User{}, fmt.Errorf("failed to execute statement HERE1: %w", err)
+		return models.User{}, fmt.Errorf("GetByEmail: failed to execute statement HERE1: %w", err)
 	}
 
 	dbUser.Profile, err = r.getUserProfileByUserId(ctx, dbUser.Id)
 	if err != nil {
-		return models.User{}, fmt.Errorf("failed to execute statement HERE2: %w", err)
-	}
-
-	dbUser.Roles, err = r.getRolesByUserId(ctx, dbUser.Id)
-	if err != nil {
-		return models.User{}, fmt.Errorf("failed to execute statement HERE3: %w", err)
+		return models.User{}, fmt.Errorf("GetByEmail: failed to execute statement HERE2: %w", err)
 	}
 
 	return mapToUser(dbUser), nil
+}
+
+//go:embed sql/get_user_by_ids.sql
+var _getUserByIdsSql string
+
+func (r repositoryImpl) GetByIds(ctx context.Context, ids []int) ([]models.User, error) {
+	var dbUsers []DbUser
+
+	err := r.db.SelectContext(ctx, &dbUsers, _getUserByIdsSql, ids)
+	if err != nil {
+		return []models.User{}, fmt.Errorf("GetByIds: failed to execute statement HERE1: %w", err)
+	}
+
+	for i := range dbUsers {
+		dbUsers[i].Profile, err = r.getUserProfileByUserId(ctx, dbUsers[i].Id)
+		if err != nil {
+			return []models.User{}, fmt.Errorf("GetByIds: failed to execute statement HERE2: %w", err)
+		}
+	}
+
+	return mapToUsers(dbUsers), nil
 }
 
 //go:embed sql/get_user_profile_by_user_id.sql
@@ -104,20 +116,6 @@ func (r repositoryImpl) getUserProfileByUserId(ctx context.Context, userId int) 
 	}
 
 	return profile, nil
-}
-
-//go:embed sql/get_roles_by_user_id.sql
-var _getRolesByUserIdSql string
-
-func (r repositoryImpl) getRolesByUserId(ctx context.Context, userId int) ([]DbRole, error) {
-	var roles []DbRole
-
-	err := r.db.SelectContext(ctx, &roles, _getRolesByUserIdSql, userId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute statement RP: %w", err)
-	}
-
-	return roles, nil
 }
 
 //go:embed sql/insert_user_profile.sql
@@ -147,33 +145,4 @@ func insertUserProfile(ctx context.Context, tx *sqlx.Tx, userId int, profile DbU
 	}
 
 	return profile, nil
-}
-
-//go:embed sql/insert_users_roles.sql
-var _insertUsersRolesSql string
-
-func insertUsersRoles(ctx context.Context, tx *sqlx.Tx, roles []DbRole) error {
-	var (
-		stmt *sqlx.NamedStmt
-		err  error
-	)
-	defer func() {
-		if stmt != nil {
-			stmt.Close()
-		}
-	}()
-
-	for _, role := range roles {
-		stmt, err = tx.PrepareNamedContext(ctx, tx.Rebind(_insertUsersRolesSql))
-		if err != nil {
-			return fmt.Errorf("failed to prepare statement: %w", err)
-		}
-
-		_, err = stmt.ExecContext(ctx, role)
-		if err != nil {
-			return fmt.Errorf("failed to execute statement: %w", err)
-		}
-	}
-
-	return nil
 }

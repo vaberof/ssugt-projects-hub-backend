@@ -6,4 +6,4 @@ select id,
        created_at,
        updated_at
 from users
-where email = $1
+where id = any($1)

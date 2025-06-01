@@ -1,4 +1,4 @@
-package mongodb
+package mongo
 
 import (
 	"context"
@@ -22,8 +22,7 @@ type MongoDatabaseConfig struct {
 }
 
 type ManagedDatabase struct {
-	Db      *mongo.Database
-	errorCh chan error
+	Db *mongo.Database
 }
 
 func New(config *MongoDatabaseConfig) (*ManagedDatabase, error) {
@@ -44,16 +43,12 @@ func New(config *MongoDatabaseConfig) (*ManagedDatabase, error) {
 	clientOptions.SetTimeout(time.Second * 5)
 	clientOptions.SetConnectTimeout(time.Second * 5)
 	clientOptions.SetMaxConnIdleTime(time.Second * 5)
-	clientOptions.SetMaxPoolSize(config.PoolSize)
+	//clientOptions.SetMaxPoolSize(config.PoolSize)
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to mongodb: %w", err)
 	}
-
-	errorCh := make(chan error)
-
-	//go verifyClientConnectionAbility(client, errorCh)
 
 	err = client.Ping(ctx, nil)
 	if err != nil {
@@ -67,40 +62,12 @@ func New(config *MongoDatabaseConfig) (*ManagedDatabase, error) {
 	}
 
 	managedDatabase := ManagedDatabase{
-		Db:      mongoDb,
-		errorCh: errorCh,
+		Db: mongoDb,
 	}
 
 	log.Println("database is running")
 
 	return &managedDatabase, nil
-}
-
-func verifyClientConnectionAbility(client *mongo.Client, errorCh chan<- error) {
-	pingTimeout := time.Second * 5
-	pingInterval := time.Second * 5
-
-	ctx, cancel := context.WithTimeout(context.Background(), pingTimeout)
-	defer cancel()
-
-	timer := time.NewTimer(pingInterval)
-	defer timer.Stop()
-	for {
-		if err := client.Ping(ctx, nil); err != nil {
-			log.Println("FAILED TO PING")
-			errorCh <- fmt.Errorf("failed to ping mongodb while verifying client connection: %w", err)
-			return
-		}
-
-		select {
-		case <-timer.C:
-			timer.Reset(pingInterval)
-		}
-	}
-}
-
-func (mongo *ManagedDatabase) Error() <-chan error {
-	return mongo.errorCh
 }
 
 func (mongo *ManagedDatabase) Disconnect(ctx context.Context) error {
