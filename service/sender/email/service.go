@@ -3,7 +3,6 @@ package email
 import (
 	"bytes"
 	"encoding/base64"
-
 	"fmt"
 	"log/slog"
 	"net/smtp"

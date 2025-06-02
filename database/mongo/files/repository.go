@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"log"
 	"time"
 
@@ -23,6 +24,7 @@ const (
 type Repository interface {
 	Save(ctx context.Context, files []models.ProjectFile) error
 	GetByProjectId(ctx context.Context, projectId int) ([]models.ProjectFile, error)
+	DeleteByProjectId(ctx context.Context, projectId int) error
 }
 
 type repositoryImpl struct {
@@ -34,7 +36,6 @@ func NewRepository(db *mongo.Database) Repository {
 }
 
 func (r repositoryImpl) Save(ctx context.Context, files []models.ProjectFile) error {
-	// Создаём GridFS bucket с префиксом project_files
 	bucket, err := gridfs.NewBucket(
 		r.db,
 		options.GridFSBucket().SetName(projectFilesBucket),
@@ -44,22 +45,18 @@ func (r repositoryImpl) Save(ctx context.Context, files []models.ProjectFile) er
 	}
 
 	for _, f := range files {
-		// Декодируем содержимое из Base64
 		data, err := base64.StdEncoding.DecodeString(string(f.Content))
 		if err != nil {
 			return err
 		}
-
-		// Готовим metadata: связываем файл с projectId, сохраняем тип, имя и время загрузки
 		metadata := bson.M{
 			"projectId":  f.ProjectId,
 			"type":       f.Type,
 			"name":       f.Name,
 			"uploadedAt": f.UploadedAt,
 		}
+    
 		uploadOpts := options.GridFSUpload().SetMetadata(metadata)
-
-		// Загружаем потоком (имя файла используется как filename в GridFS)
 		_, err = bucket.UploadFromStream(f.Name, bytes.NewReader(data), uploadOpts)
 		if err != nil {
 			return err
@@ -93,7 +90,6 @@ func (r repositoryImpl) GetByProjectId(ctx context.Context, projectId int) ([]mo
 			return nil, err
 		}
 
-		// Извлекаем ID файла (ObjectID), имя, metadata
 		fileID, ok := fileDoc["_id"].(primitive.ObjectID)
 		if !ok {
 			continue
@@ -101,7 +97,6 @@ func (r repositoryImpl) GetByProjectId(ctx context.Context, projectId int) ([]mo
 		filename, _ := fileDoc["filename"].(string)
 		meta, _ := fileDoc["metadata"].(bson.M)
 
-		// Извлекаем поля из metadata
 		var ftype models.ProjectFileType
 		if t, ok := meta["type"].(string); ok {
 			ftype = models.ProjectFileType(t)
@@ -111,12 +106,11 @@ func (r repositoryImpl) GetByProjectId(ctx context.Context, projectId int) ([]mo
 			uploadedAt = dt.Time()
 		}
 
-		// Скачиваем содержимое в буфер
 		var buf bytes.Buffer
 		if _, err := bucket.DownloadToStream(fileID, &buf); err != nil {
 			return nil, err
 		}
-		// Кодируем содержимое в Base64
+
 		encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
 
 		result = append(result, models.ProjectFile{
@@ -134,4 +128,40 @@ func (r repositoryImpl) GetByProjectId(ctx context.Context, projectId int) ([]mo
 	}
 
 	return result, nil
+}
+
+func (r repositoryImpl) DeleteByProjectId(ctx context.Context, projectId int) error {
+	bucket, err := gridfs.NewBucket(
+		r.db,
+		options.GridFSBucket().SetName(projectFilesBucket),
+	)
+	if err != nil {
+		return err
+	}
+
+	filter := bson.M{
+		"metadata.projectId": projectId,
+	}
+
+	filesColl := r.db.Collection(fmt.Sprintf("%s.files", projectFilesBucket))
+	cursor, err := filesColl.Find(ctx, filter)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var fileDoc struct {
+			ID interface{} `bson:"_id"`
+		}
+		if err := cursor.Decode(&fileDoc); err != nil {
+			return err
+		}
+		if err := bucket.Delete(fileDoc.ID); err != nil {
+			return err
+		}
+	}
+
+	log.Printf("Все файлы проекта %d успешно удалены", projectId)
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/samber/lo"
+	"log"
 	"ssugt-projects-hub/models"
 	"strings"
 )
@@ -123,6 +124,7 @@ func (r repositoryImpl) Update(ctx context.Context, project models.Project) (mod
 		return models.Project{}, fmt.Errorf("failed to execute statement: %w", err)
 	}
 
+	log.Printf("dbProject.Id=%v, dbProject.Collaborators=%v", dbProject.Id, dbProject.Collaborators)
 	err = updateCollaborators(ctx, tx, dbProject.Id, dbProject.Collaborators)
 	if err != nil {
 		return models.Project{}, fmt.Errorf("failed to update project collaborators: %w", err)
@@ -234,6 +236,8 @@ func (r repositoryImpl) Search(ctx context.Context, filters models.ProjectSearch
 	if len(conditions) > 0 {
 		query += " AND " + strings.Join(conditions, " AND ")
 	}
+
+	query += " ORDER BY created_at DESC"
 
 	var dbProjects []DbProject
 	err := r.db.SelectContext(ctx, &dbProjects, query, args...)
