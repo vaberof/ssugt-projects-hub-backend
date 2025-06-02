@@ -49,15 +49,14 @@ func (r repositoryImpl) Save(ctx context.Context, files []models.ProjectFile) er
 		if err != nil {
 			return err
 		}
-
 		metadata := bson.M{
 			"projectId":  f.ProjectId,
 			"type":       f.Type,
 			"name":       f.Name,
 			"uploadedAt": f.UploadedAt,
 		}
+    
 		uploadOpts := options.GridFSUpload().SetMetadata(metadata)
-
 		_, err = bucket.UploadFromStream(f.Name, bytes.NewReader(data), uploadOpts)
 		if err != nil {
 			return err

@@ -69,7 +69,6 @@ func addProjectsHandlers(route *mux.Router, log *logs.Logs, projectService proje
 	route.HandleFunc("/projects/{id}/files", handlers.UploadFilesHandler(log, filesService)).Methods(http.MethodPost)
 	route.HandleFunc("/projects/{id}/files", handlers.DownloadFilesHandler(log, filesService)).Methods(http.MethodGet)
 	route.HandleFunc("/projects/{id}/files", handlers.UpdateFilesHandler(log, filesService)).Methods(http.MethodPut)
-
 }
 
 func addUsersHandlers(route *mux.Router, log *logs.Logs, userService user.Service, projectService project.Service) {

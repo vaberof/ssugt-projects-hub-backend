@@ -1,6 +1,6 @@
 {
   "port": 80,
-  "postgres": "postgres://psqldev:dev@localhost/ssugt-projects-hub?sslmode=disable&search_path=dev",
+  "postgres": "postgres://psqldev:dev@localhost/ssugt_projects_hub?sslmode=disable&search_path=dev",
   "timeout": 30,
   "secret_key": "secret_key"
 }
