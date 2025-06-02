@@ -65,9 +65,11 @@ func addProjectsHandlers(route *mux.Router, log *logs.Logs, projectService proje
 	route.HandleFunc("/projects", handlers.CreateProjectHandler(log, projectService)).Methods(http.MethodPost)
 	route.HandleFunc("/projects/{id}", handlers.GetProjectByIdHandler(log, projectService)).Methods(http.MethodGet)
 	route.HandleFunc("/projects/search", handlers.SearchProjectHandler(log, projectService)).Methods(http.MethodPost)
-	route.HandleFunc("/projects", handlers.UpdateProjectHandler(log, projectService)).Methods(http.MethodPut)
+	route.HandleFunc("/projects/{id}", handlers.UpdateProjectHandler(log, projectService)).Methods(http.MethodPut)
 	route.HandleFunc("/projects/{id}/files", handlers.UploadFilesHandler(log, filesService)).Methods(http.MethodPost)
 	route.HandleFunc("/projects/{id}/files", handlers.DownloadFilesHandler(log, filesService)).Methods(http.MethodGet)
+	route.HandleFunc("/projects/{id}/files", handlers.UpdateFilesHandler(log, filesService)).Methods(http.MethodPut)
+
 }
 
 func addUsersHandlers(route *mux.Router, log *logs.Logs, userService user.Service, projectService project.Service) {
